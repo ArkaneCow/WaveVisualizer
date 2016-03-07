@@ -36,12 +36,23 @@ public class FFTFrame implements Drawable{
         float minLog = logFrame.min();
         float maxLog = logFrame.max();
         float logRange = maxLog - minLog;
-
         byte[] imageBuffer = new byte[width * height * 4];
         for (int i = 0; i < width; i++) {
+            int binIndex = (int) ((float) i * (float) getBinCount() / (float) width);
+            int normPower = (int) (((logFrame.getValue(binIndex) - minLog) / logRange) * (float) height);
             for (int j = 0; j < height; j++) {
-                int binIndex = (int) ((float) i * (float) getBinCount() / (float) width);
-
+                int mapIndex = (j * width + i) * 4; // index of imageBuffer[x, y, 0]
+                if (j <= normPower) {
+                    imageBuffer[mapIndex] = (byte) 255;
+                    imageBuffer[mapIndex + 1] = (byte) 255;
+                    imageBuffer[mapIndex + 2] = (byte) 0;
+                    imageBuffer[mapIndex + 3] = (byte) 0;
+                } else {
+                    imageBuffer[mapIndex] = (byte) 255;
+                    imageBuffer[mapIndex + 1] = (byte) 0;
+                    imageBuffer[mapIndex + 2] = (byte) 0;
+                    imageBuffer[mapIndex + 3] = (byte) 0;
+                }
             }
         }
         return imageBuffer;
