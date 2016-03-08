@@ -34,7 +34,7 @@ public class VisualizeActivity extends Activity {
         dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(sampleRate, bufferSize, 0);
         spProcessor = new SpectralPeakProcessor(bufferSize, bufferSize / 2, sampleRate);
         mfccProcessor = new MFCC(bufferSize, sampleRate);
-        dispatcher.addAudioProcessor(spProcessor);
+        dispatcher.addAudioProcessor(mfccProcessor);
         dispatcher.addAudioProcessor(new AudioProcessor() {
             @Override
             public boolean process(AudioEvent audioEvent) {
