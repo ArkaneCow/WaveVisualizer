@@ -5,8 +5,13 @@
     tools:context="${relativePackage}.${activityClass}">
 
     <TextView
-        android:text="@string/hello_world"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+            android:text="@string/hello_world"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:id="@+id/testText"/>
+    <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/visualGraph" android:layout_centerVertical="true" android:layout_centerHorizontal="true"
+            android:minHeight="200dp" android:minWidth="300dp" android:background="#46ff3123"/>
 
 </RelativeLayout>
