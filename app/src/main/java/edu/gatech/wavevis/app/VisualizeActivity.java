@@ -43,13 +43,7 @@ public class VisualizeActivity extends Activity {
                         FFTFrame frameFFT = new FFTFrame(frameVector, frameVector);
                         int[] frameVis = frameFFT.draw(600, 400);
                         Bitmap bmp = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888);
-                        /*
-                        for (int i = 0; i < 600; i++) {
-                            for (int j = 0; j < 400; j++) {
-                                bmp.setPixel(i, j, 0xffffffff);
-                            }
-                        }
-                        */
+                        bmp.setPixels(frameVis, 0, 600, 0, 0, 600, 400);
                         visualGraph.setImageBitmap(bmp);
                         textView.setText("" + frameVector.magnitude());
                     }
