@@ -14,6 +14,7 @@ import be.tarsos.dsp.AudioProcessor;
 import be.tarsos.dsp.SpectralPeakProcessor;
 import be.tarsos.dsp.io.android.AudioDispatcherFactory;
 import be.tarsos.dsp.mfcc.MFCC;
+import be.tarsos.dsp.util.fft.FFT;
 
 public class VisualizeActivity extends Activity {
 
@@ -22,7 +23,6 @@ public class VisualizeActivity extends Activity {
     private AudioDispatcher dispatcher;
     private ImageView visualGraph;
     private TextView textView;
-    private SpectralPeakProcessor spProcessor;
     private MFCC mfccProcessor;
 
     @Override
@@ -32,19 +32,24 @@ public class VisualizeActivity extends Activity {
         textView = (TextView) findViewById(R.id.testText);
         visualGraph = (ImageView) findViewById(R.id.visualGraph);
         dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(sampleRate, bufferSize, 0);
-        spProcessor = new SpectralPeakProcessor(bufferSize, bufferSize / 2, sampleRate);
         mfccProcessor = new MFCC(bufferSize, sampleRate);
         dispatcher.addAudioProcessor(mfccProcessor);
         dispatcher.addAudioProcessor(new AudioProcessor() {
+            FFT fft = new FFT(bufferSize);
+            float[] amplitudes = new float[bufferSize / 2];
             @Override
             public boolean process(AudioEvent audioEvent) {
-                final float[] magSpectrum = mfccProcessor.getMFCC();
+                float[] audioFloatBuffer = audioEvent.getFloatBuffer();
+                float[] transformBuffer = new float[bufferSize * 2];
+                System.arraycopy(audioFloatBuffer, 0, transformBuffer, 0, audioFloatBuffer.length);
+                fft.forwardTransform(transformBuffer);
+                fft.modulus(transformBuffer, amplitudes);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         int drawWidth = 120;
                         int drawHeight = 80;
-                        NVector frameVector = new NVector(magSpectrum);
+                        NVector frameVector = new NVector(amplitudes);
                         FFTFrame frameFFT = new FFTFrame(frameVector, frameVector);
                         int[] frameVis = frameFFT.draw(drawWidth, drawHeight);
                         Bitmap bmp = Bitmap.createBitmap(drawWidth, drawHeight, Bitmap.Config.ARGB_8888);
