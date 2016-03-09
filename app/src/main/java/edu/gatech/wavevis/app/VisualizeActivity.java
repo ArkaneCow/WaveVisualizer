@@ -2,10 +2,7 @@ package edu.gatech.wavevis.app;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 import be.tarsos.dsp.AudioDispatcher;
@@ -43,13 +40,6 @@ public class VisualizeActivity extends Activity {
                         FFTFrame frameFFT = new FFTFrame(frameVector, frameVector);
                         int[] frameVis = frameFFT.draw(600, 400);
                         Bitmap bmp = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888);
-                        /*
-                        for (int i = 0; i < 600; i++) {
-                            for (int j = 0; j < 400; j++) {
-                                bmp.setPixel(i, j, 0xffffffff);
-                            }
-                        }
-                        */
                         visualGraph.setImageBitmap(bmp);
                         textView.setText("" + frameVector.magnitude());
                     }
