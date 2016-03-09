@@ -1,5 +1,7 @@
 package edu.gatech.wavevis.app;
 
+import android.util.Log;
+
 public class FFTFrame implements Drawable{
 
     private NVector frameBins;
@@ -33,9 +35,10 @@ public class FFTFrame implements Drawable{
     @Override
     public int[] draw(int width, int height) {
         NVector logFrame = frameData.log10();
-        float minLog = logFrame.min();
-        float maxLog = logFrame.max();
+        float minLog = -5.F;
+        float maxLog = 3.F;
         float logRange = maxLog - minLog;
+        Log.v("stats", "min: " + minLog + " max: " + maxLog + " logRange: " + logRange);
         int[] imageBuffer = new int[width * height];
         for (int i = 0; i < width; i++) {
             int binIndex = (int) ((float) i * (float) getBinCount() / (float) width);
