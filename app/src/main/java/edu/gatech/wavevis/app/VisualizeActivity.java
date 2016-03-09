@@ -11,9 +11,7 @@ import android.widget.TextView;
 import be.tarsos.dsp.AudioDispatcher;
 import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
-import be.tarsos.dsp.SpectralPeakProcessor;
 import be.tarsos.dsp.io.android.AudioDispatcherFactory;
-import be.tarsos.dsp.mfcc.MFCC;
 import be.tarsos.dsp.util.fft.FFT;
 
 public class VisualizeActivity extends Activity {
@@ -23,7 +21,8 @@ public class VisualizeActivity extends Activity {
     private AudioDispatcher dispatcher;
     private ImageView visualGraph;
     private TextView textView;
-    private MFCC mfccProcessor;
+
+    private Thread dispatcherThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +31,6 @@ public class VisualizeActivity extends Activity {
         textView = (TextView) findViewById(R.id.testText);
         visualGraph = (ImageView) findViewById(R.id.visualGraph);
         dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(sampleRate, bufferSize, 0);
-        mfccProcessor = new MFCC(bufferSize, sampleRate);
-        dispatcher.addAudioProcessor(mfccProcessor);
         dispatcher.addAudioProcessor(new AudioProcessor() {
             FFT fft = new FFT(bufferSize);
             float[] amplitudes = new float[bufferSize / 2];
@@ -67,6 +64,15 @@ public class VisualizeActivity extends Activity {
             }
         });
 
-        new Thread(dispatcher).start();
+        dispatcherThread = new Thread(dispatcher);
+        dispatcherThread.start();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!dispatcherThread.isAlive()) {
+            dispatcherThread.start();
+        }
     }
 }
