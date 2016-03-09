@@ -47,8 +47,8 @@ public class VisualizeActivity extends Activity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        int drawWidth = 120;
-                        int drawHeight = 80;
+                        int drawWidth = 240;
+                        int drawHeight = 160;
                         NVector frameVector = new NVector(amplitudes);
                         FFTFrame frameFFT = new FFTFrame(frameVector, frameVector);
                         int[] frameVis = frameFFT.draw(drawWidth, drawHeight);
