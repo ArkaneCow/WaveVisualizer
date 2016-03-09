@@ -33,25 +33,19 @@ public class FFTFrame implements Drawable{
     @Override
     public int[] draw(int width, int height) {
         NVector logFrame = frameData.log10();
-        float minLog = logFrame.min();
-        float maxLog = logFrame.max();
+        float minLog = -5.F;
+        float maxLog = 3.F;
         float logRange = maxLog - minLog;
-        int[] imageBuffer = new int[width * height * 4];
+        int[] imageBuffer = new int[width * height];
         for (int i = 0; i < width; i++) {
             int binIndex = (int) ((float) i * (float) getBinCount() / (float) width);
             int normPower = (int) (((logFrame.getValue(binIndex) - minLog) / logRange) * (float) height);
             for (int j = 0; j < height; j++) {
-                int mapIndex = (j * width + i) * 4; // index of imageBuffer[x, y, 0]
+                int mapIndex = (height - 1 - j) * width + i;
                 if (j <= normPower) {
-                    imageBuffer[mapIndex] = 255;
-                    imageBuffer[mapIndex + 1] = 255;
-                    imageBuffer[mapIndex + 2] = 0;
-                    imageBuffer[mapIndex + 3] = 0;
+                    imageBuffer[mapIndex] = 0xffff0000;
                 } else {
-                    imageBuffer[mapIndex] = 255;
-                    imageBuffer[mapIndex + 1] = 0;
-                    imageBuffer[mapIndex + 2] = 0;
-                    imageBuffer[mapIndex + 3] = 0;
+                    imageBuffer[mapIndex] = 0xff000000;
                 }
             }
         }

@@ -2,14 +2,19 @@ package edu.gatech.wavevis.app;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 import be.tarsos.dsp.AudioDispatcher;
 import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
+import be.tarsos.dsp.SpectralPeakProcessor;
 import be.tarsos.dsp.io.android.AudioDispatcherFactory;
 import be.tarsos.dsp.mfcc.MFCC;
+import be.tarsos.dsp.util.fft.FFT;
 
 public class VisualizeActivity extends Activity {
 
@@ -30,16 +35,25 @@ public class VisualizeActivity extends Activity {
         mfccProcessor = new MFCC(bufferSize, sampleRate);
         dispatcher.addAudioProcessor(mfccProcessor);
         dispatcher.addAudioProcessor(new AudioProcessor() {
+            FFT fft = new FFT(bufferSize);
+            float[] amplitudes = new float[bufferSize / 2];
             @Override
             public boolean process(AudioEvent audioEvent) {
-                final float[] magSpectrum = mfccProcessor.getMFCC();
+                float[] audioFloatBuffer = audioEvent.getFloatBuffer();
+                float[] transformBuffer = new float[bufferSize * 2];
+                System.arraycopy(audioFloatBuffer, 0, transformBuffer, 0, audioFloatBuffer.length);
+                fft.forwardTransform(transformBuffer);
+                fft.modulus(transformBuffer, amplitudes);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        NVector frameVector = new NVector(magSpectrum);
+                        int drawWidth = 240;
+                        int drawHeight = 160;
+                        NVector frameVector = new NVector(amplitudes);
                         FFTFrame frameFFT = new FFTFrame(frameVector, frameVector);
-                        int[] frameVis = frameFFT.draw(600, 400);
-                        Bitmap bmp = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888);
+                        int[] frameVis = frameFFT.draw(drawWidth, drawHeight);
+                        Bitmap bmp = Bitmap.createBitmap(drawWidth, drawHeight, Bitmap.Config.ARGB_8888);
+                        bmp.setPixels(frameVis, 0, drawWidth, 0, 0, drawWidth, drawHeight);
                         visualGraph.setImageBitmap(bmp);
                         textView.setText("" + frameVector.magnitude());
                     }
