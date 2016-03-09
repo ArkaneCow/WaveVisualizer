@@ -2,10 +2,7 @@ package edu.gatech.wavevis.app;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 import be.tarsos.dsp.AudioDispatcher;
@@ -65,14 +62,18 @@ public class VisualizeActivity extends Activity {
         });
 
         dispatcherThread = new Thread(dispatcher);
-        dispatcherThread.start();
+        dispatchAudio();
+    }
+
+    private void dispatchAudio() {
+        if (!dispatcherThread.isAlive()) {
+            dispatcherThread.start();
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (!dispatcherThread.isAlive()) {
-            dispatcherThread.start();
-        }
+        dispatchAudio();
     }
 }
