@@ -5,13 +5,32 @@
     tools:context="${relativePackage}.${activityClass}">
 
     <TextView
-            android:text="@string/hello_world"
+            android:text="magnitudeValue"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/testText"/>
+            android:layout_height="wrap_content" android:id="@+id/magnitudeValue" android:layout_alignParentTop="true"
+            android:layout_alignParentLeft="true" android:layout_alignParentStart="true"
+            android:layout_marginLeft="43dp" android:layout_marginStart="43dp" android:layout_marginTop="38dp"/>
     <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/visualGraph" android:layout_centerVertical="true" android:layout_centerHorizontal="true"
-            android:minHeight="200dp" android:minWidth="300dp" android:background="#46ff3123"/>
+            android:id="@+id/visualGraph"
+            android:minHeight="200dp" android:minWidth="300dp" android:background="#46ff3123"
+            android:layout_alignParentBottom="true" android:layout_centerHorizontal="true"
+            android:layout_marginBottom="69dp"/>
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Small Text"
+            android:id="@+id/textView"
+            android:layout_alignBottom="@+id/visualGraph" android:layout_centerHorizontal="true"/>
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Small Text"
+            android:id="@+id/textView2"
+            android:layout_alignTop="@+id/visualGraph" android:layout_alignLeft="@+id/visualGraph"
+            android:layout_alignStart="@+id/visualGraph"/>
 
 </RelativeLayout>

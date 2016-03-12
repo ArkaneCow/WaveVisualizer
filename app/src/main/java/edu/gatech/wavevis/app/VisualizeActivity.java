@@ -13,28 +13,28 @@ import be.tarsos.dsp.util.fft.FFT;
 
 public class VisualizeActivity extends Activity {
 
-    private int sampleRate = 8000;
-    private int bufferSize = 1024;
-    private AudioDispatcher dispatcher;
     private ImageView visualGraph;
     private TextView textView;
 
     private Thread dispatcherThread;
 
+    private AudioDispatcher dispatcher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_visualize);
-        textView = (TextView) findViewById(R.id.testText);
+        textView = (TextView) findViewById(R.id.magnitudeValue);
         visualGraph = (ImageView) findViewById(R.id.visualGraph);
-        dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(sampleRate, bufferSize, 0);
+        dispatcher = AudioService.getInstance().getAudioDispatcher();
+        final int audioBufferSize = AudioService.getInstance().getBufferSize();
         dispatcher.addAudioProcessor(new AudioProcessor() {
-            FFT fft = new FFT(bufferSize);
-            float[] amplitudes = new float[bufferSize / 2];
+            FFT fft = new FFT(audioBufferSize);
+            float[] amplitudes = new float[audioBufferSize / 2];
             @Override
             public boolean process(AudioEvent audioEvent) {
                 float[] audioFloatBuffer = audioEvent.getFloatBuffer();
-                float[] transformBuffer = new float[bufferSize * 2];
+                float[] transformBuffer = new float[audioBufferSize * 2];
                 System.arraycopy(audioFloatBuffer, 0, transformBuffer, 0, audioFloatBuffer.length);
                 fft.forwardTransform(transformBuffer);
                 fft.modulus(transformBuffer, amplitudes);
@@ -61,19 +61,10 @@ public class VisualizeActivity extends Activity {
             }
         });
 
-        dispatcherThread = new Thread(dispatcher);
-        dispatchAudio();
-    }
-
-    private void dispatchAudio() {
-        if (!dispatcherThread.isAlive()) {
-            dispatcherThread.start();
-        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        dispatchAudio();
     }
 }
