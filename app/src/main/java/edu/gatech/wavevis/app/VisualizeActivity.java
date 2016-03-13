@@ -16,8 +16,6 @@ public class VisualizeActivity extends Activity {
     private ImageView visualGraph;
     private TextView textView;
 
-    private Thread dispatcherThread;
-
     private AudioDispatcher dispatcher;
 
     @Override
