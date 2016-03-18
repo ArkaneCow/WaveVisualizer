@@ -130,7 +130,7 @@ public class CollectorActivity extends Activity {
         recordingState = RecordingState.STOP;
         for (LabelData result : testResults) {
             if (result != null) {
-                result.writeToFile();
+                result.writeToFile(this);
             }
         }
         setStartButtonText("Start");
