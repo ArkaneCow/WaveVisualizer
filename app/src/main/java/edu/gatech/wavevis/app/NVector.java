@@ -105,4 +105,13 @@ public class NVector {
         }
         return (float) Math.sqrt((double) mag);
     }
+
+    @Override
+    public String toString() {
+        String vectorString = "";
+        for (int i = 0; i < vectorData.length; i++) {
+            vectorString += vectorData[i] + ",";
+        }
+        return vectorString;
+    }
 }

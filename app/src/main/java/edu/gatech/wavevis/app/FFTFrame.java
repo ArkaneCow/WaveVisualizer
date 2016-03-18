@@ -5,6 +5,9 @@ public class FFTFrame implements Drawable{
     private NVector frameBins;
     private NVector frameData;
 
+    private static int MIN_LOG = -3;
+    private static int MAX_LOG = 2;
+
     public FFTFrame(NVector frameBins) {
         this.frameBins = frameBins;
     }
@@ -33,13 +36,11 @@ public class FFTFrame implements Drawable{
     @Override
     public int[] draw(int width, int height) {
         NVector logFrame = frameData.log10();
-        float minLog = -5.F;
-        float maxLog = 3.F;
-        float logRange = maxLog - minLog;
+        int logRange = MAX_LOG - MIN_LOG;
         int[] imageBuffer = new int[width * height];
         for (int i = 0; i < width; i++) {
             int binIndex = (int) ((float) i * (float) getBinCount() / (float) width);
-            int normPower = (int) (((logFrame.getValue(binIndex) - minLog) / logRange) * (float) height);
+            int normPower = (int) (((logFrame.getValue(binIndex) - MIN_LOG) / logRange) * (float) height);
             for (int j = 0; j < height; j++) {
                 int mapIndex = (height - 1 - j) * width + i;
                 if (j <= normPower) {
