@@ -1,8 +1,7 @@
 package edu.gatech.wavevis.app;
 
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,14 +30,17 @@ public class LabelData {
     public void writeToFile() {
         String fileName = labelState.toString() + ("" + System.currentTimeMillis()) + ".txt";
         try {
-            PrintWriter fileWriter = new PrintWriter(fileName, "UTF-8");
-            for (NVector vector : labelData) {
-                fileWriter.println(vector.toString());
+            FileOutputStream fop = new FileOutputStream(new File(fileName));
+            for (NVector ld : getLabelData()) {
+                fop.write(ld.toString().getBytes(Charset.forName("UTF-8")));
             }
-            fileWriter.close();
+            fop.flush();
+            fop.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
