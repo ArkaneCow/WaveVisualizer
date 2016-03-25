@@ -42,14 +42,12 @@ public class CollectorActivity extends Activity {
 
     private RecordingState recordingState;
 
-    private LabelState[] testLabels = { LabelState.BREATHING, LabelState.LEFT_BLOW, LabelState.RIGHT_BLOW, LabelState.TALKING };
+    private LabelTest[] testLabels = { new LabelTest(LabelState.BREATHING, 1000), new LabelTest(LabelState.LEFT_BLOW, 1000), new LabelTest(LabelState.RIGHT_BLOW, 1000), new LabelTest(LabelState.TALKING, 1000) };
     private LabelData[] testResults;
 
     private LabelData currentLabelData;
 
     private AudioDispatcher dispatcher;
-
-    private final int DELAY_TIME = 2000;
 
     private int labelIndex = 0;
 
@@ -60,11 +58,12 @@ public class CollectorActivity extends Activity {
         public void run() {
             if (labelIndex < testLabels.length) {
                 promptText.setText(testLabels[labelIndex].toString());
-                LabelData lData = new LabelData(testLabels[labelIndex]);
+                LabelTest currentTest = testLabels[labelIndex];
+                LabelData lData = new LabelData(currentTest.getLabelState());
                 testResults[labelIndex] = lData;
                 currentLabelData = lData;
                 labelIndex++;
-                stateHandler.postDelayed(this, DELAY_TIME);
+                stateHandler.postDelayed(this, currentTest.getTestLength());
             } else {
                 stopSession();
             }
