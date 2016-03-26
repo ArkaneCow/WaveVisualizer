@@ -57,8 +57,8 @@ public class CollectorActivity extends Activity {
         @Override
         public void run() {
             if (labelIndex < testLabels.length) {
-                promptText.setText(testLabels[labelIndex].toString());
                 LabelTest currentTest = testLabels[labelIndex];
+                promptText.setText(currentTest.getLabelState().toString());
                 LabelData lData = new LabelData(currentTest.getLabelState());
                 testResults[labelIndex] = lData;
                 currentLabelData = lData;
