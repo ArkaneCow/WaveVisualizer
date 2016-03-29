@@ -130,6 +130,8 @@ public class CollectorActivity extends Activity {
         for (LabelData result : testResults) {
             if (result != null) {
                 result.writeToFile(this);
+            } else {
+                Log.v("result", "result is null");
             }
         }
         setStartButtonText("Start");

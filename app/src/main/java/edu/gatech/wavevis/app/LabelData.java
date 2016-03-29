@@ -1,6 +1,7 @@
 package edu.gatech.wavevis.app;
 
 import android.app.Activity;
+import android.util.Log;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -31,10 +32,12 @@ public class LabelData {
 
     public void writeToFile(Activity activity) {
         String fileName = labelState.toString() + ("" + System.currentTimeMillis()) + ".txt";
+        String filePath = activity.getFilesDir() + "/" + fileName;
+        Log.v("labeldata filepath", filePath);
         try {
-            FileOutputStream fop = new FileOutputStream(new File(activity.getFilesDir() + fileName));
+            FileOutputStream fop = new FileOutputStream(new File(filePath));
             for (NVector ld : getLabelData()) {
-                fop.write(ld.toString().getBytes(Charset.forName("UTF-8")));
+                fop.write((ld.toString() + "\n").getBytes(Charset.forName("UTF-8")));
             }
             fop.flush();
             fop.close();
