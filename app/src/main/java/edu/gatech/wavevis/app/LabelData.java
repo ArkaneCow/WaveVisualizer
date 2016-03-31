@@ -1,6 +1,6 @@
 package edu.gatech.wavevis.app;
 
-import android.app.Activity;
+import android.content.Context;
 import android.util.Log;
 
 import java.io.*;
@@ -11,15 +11,45 @@ import java.util.List;
 public class LabelData {
     private LabelState labelState;
     private List<NVector> labelData;
+    private RandomAccessFile labelWav;
+    private int wavDataLength = 0;
 
-    public LabelData(LabelState labelState) {
-        this.labelState = labelState;
-        this.labelData = new ArrayList<NVector>();
+    private Context context;
+
+    private static final int HEADER_LENGTH = 44; // length of a WAV header
+
+    public LabelData(Context context, LabelState labelState) {
+        this(context, labelState, new ArrayList<NVector>());
     }
 
-    public LabelData(LabelState labelState, List<NVector> labelData) {
+    private String baseFileName() {
+        return context.getFilesDir() + "/" + labelState.toString() + ("" + System.currentTimeMillis());
+    }
+
+    public int getWavDataLength() {
+        return wavDataLength;
+    }
+
+    public void setWavDataLength(int wavDataLength) {
+        this.wavDataLength = wavDataLength;
+    }
+
+    public LabelData(Context context, LabelState labelState, List<NVector> labelData) {
         this.labelState = labelState;
         this.labelData = labelData;
+        this.context = context;
+        try {
+            labelWav = new RandomAccessFile(new File(baseFileName() + ".wav"), "rw");
+            labelWav.write(new byte[HEADER_LENGTH]);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public RandomAccessFile getLabelWav() {
+        return labelWav;
     }
 
     public List<NVector> getLabelData() {
@@ -30,9 +60,8 @@ public class LabelData {
         return labelState;
     }
 
-    public void writeToFile(Activity activity) {
-        String fileName = labelState.toString() + ("" + System.currentTimeMillis()) + ".txt";
-        String filePath = activity.getFilesDir() + "/" + fileName;
+    public void writeToFile() {
+        String filePath = baseFileName() + ".txt";
         Log.v("labeldata filepath", filePath);
         try {
             FileOutputStream fop = new FileOutputStream(new File(filePath));

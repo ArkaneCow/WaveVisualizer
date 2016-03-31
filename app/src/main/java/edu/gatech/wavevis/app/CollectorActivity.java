@@ -12,8 +12,13 @@ import android.widget.TextView;
 import be.tarsos.dsp.AudioDispatcher;
 import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
+import be.tarsos.dsp.io.TarsosDSPAudioFormat;
 import be.tarsos.dsp.util.fft.FFT;
+import be.tarsos.dsp.writer.WaveHeader;
+import be.tarsos.dsp.writer.WriterProcessor;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 public class CollectorActivity extends Activity {
@@ -42,7 +47,7 @@ public class CollectorActivity extends Activity {
 
     private RecordingState recordingState;
 
-    private LabelTest[] testLabels = { new LabelTest(LabelState.BREATHING, 1000), new LabelTest(LabelState.LEFT_BLOW, 1000), new LabelTest(LabelState.RIGHT_BLOW, 1000), new LabelTest(LabelState.TALKING, 1000) };
+    private LabelTest[] testLabels = { new LabelTest(LabelState.BREATHING, 2000), new LabelTest(LabelState.LEFT_BLOW, 2000), new LabelTest(LabelState.RIGHT_BLOW, 2000), new LabelTest(LabelState.TALKING, 2000) };
     private LabelData[] testResults;
 
     private LabelData currentLabelData;
@@ -59,7 +64,7 @@ public class CollectorActivity extends Activity {
             if (labelIndex < testLabels.length) {
                 LabelTest currentTest = testLabels[labelIndex];
                 promptText.setText(currentTest.getLabelState().toString());
-                LabelData lData = new LabelData(currentTest.getLabelState());
+                LabelData lData = new LabelData(getApplicationContext(), currentTest.getLabelState());
                 testResults[labelIndex] = lData;
                 currentLabelData = lData;
                 labelIndex++;
@@ -79,22 +84,15 @@ public class CollectorActivity extends Activity {
         recordingState = RecordingState.STOP;
         testResults = new LabelData[testLabels.length];
         dispatcher = AudioService.getInstance().getAudioDispatcher();
-        final int audioBufferSize = AudioService.getInstance().getBufferSize();
         dispatcher.addAudioProcessor(new AudioProcessor() {
-            FFT fft = new FFT(audioBufferSize);
-            float[] amplitudes = new float[audioBufferSize / 2];
             @Override
             public boolean process(AudioEvent audioEvent) {
-                float[] audioFloatBuffer = audioEvent.getFloatBuffer();
-                float[] transformBuffer = new float[audioBufferSize * 2];
-                System.arraycopy(audioFloatBuffer, 0, transformBuffer, 0, audioFloatBuffer.length);
-                fft.forwardTransform(transformBuffer);
-                fft.modulus(transformBuffer, amplitudes);
+                final float[] audioFloatBuffer = audioEvent.getFloatBuffer();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         if (currentLabelData != null) {
-                            NVector frameVector = new NVector(amplitudes);
+                            NVector frameVector = new NVector(audioFloatBuffer);
                             currentLabelData.getLabelData().add(frameVector);
                         }
                     }
@@ -108,6 +106,28 @@ public class CollectorActivity extends Activity {
             }
         });
 
+        dispatcher.addAudioProcessor(new AudioProcessor() {
+            private TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
+
+            @Override
+            public boolean process(AudioEvent audioEvent) {
+                try {
+                    if (currentLabelData != null) {
+                        Log.v("cldbp", "" + currentLabelData.getLabelWav().getFilePointer());
+                        currentLabelData.setWavDataLength(currentLabelData.getWavDataLength() + audioEvent.getByteBuffer().length);
+                        currentLabelData.getLabelWav().write(audioEvent.getByteBuffer());
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return true;
+            }
+
+            @Override
+            public void processingFinished() {
+
+            }
+        });
     }
 
     private void setPromptText(String text) {
@@ -127,9 +147,24 @@ public class CollectorActivity extends Activity {
 
     private void stopSession() {
         recordingState = RecordingState.STOP;
+        setPromptText("Saving Data");
+        currentLabelData = null;
+        TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
+        for (LabelData ld : testResults) {
+            WaveHeader waveHeader = new WaveHeader(WaveHeader.FORMAT_PCM, (short) audioFormat.getChannels(), (int) audioFormat.getSampleRate(),(short) 16, ld.getWavDataLength());
+            ByteArrayOutputStream header = new ByteArrayOutputStream();
+            try {
+                waveHeader.write(header);
+                ld.getLabelWav().seek(0);
+                ld.getLabelWav().write(header.toByteArray());
+                ld.getLabelWav().close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         for (LabelData result : testResults) {
             if (result != null) {
-                result.writeToFile(this);
+                result.writeToFile();
             } else {
                 Log.v("result", "result is null");
             }
