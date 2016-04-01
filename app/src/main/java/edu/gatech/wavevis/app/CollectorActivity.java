@@ -140,6 +140,7 @@ public class CollectorActivity extends Activity {
 
     private void startSession() {
         recordingState = RecordingState.START;
+        labelIndex = 0;
         setStartButtonText("Stop");
         stateHandler = new Handler();
         stateHandler.postDelayed(stateChanger, 0);
