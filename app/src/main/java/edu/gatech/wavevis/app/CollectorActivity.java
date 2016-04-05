@@ -47,6 +47,8 @@ public class CollectorActivity extends Activity {
 
     private RecordingState recordingState;
 
+    private static final int PAUSE_TIME = 3000;
+
     private LabelTest[] testLabels = { new LabelTest(LabelState.BREATHING, 2000), new LabelTest(LabelState.LEFT_BLOW, 2000), new LabelTest(LabelState.RIGHT_BLOW, 2000), new LabelTest(LabelState.TALKING, 2000) };
     private LabelData[] testResults;
 
@@ -58,20 +60,30 @@ public class CollectorActivity extends Activity {
 
     private Handler stateHandler = new Handler();
 
-    private Runnable stateChanger = new Runnable() {
+    private Runnable statePauser = new Runnable() {
         @Override
         public void run() {
             if (labelIndex < testLabels.length) {
+                currentLabelData = null;
                 LabelTest currentTest = testLabels[labelIndex];
-                promptText.setText(currentTest.getLabelState().toString());
-                LabelData lData = new LabelData(getApplicationContext(), currentTest.getLabelState());
-                testResults[labelIndex] = lData;
-                currentLabelData = lData;
-                labelIndex++;
-                stateHandler.postDelayed(this, currentTest.getTestLength());
+                setPromptText("Up Next: " + currentTest.getLabelState().toString());
+                stateHandler.postDelayed(stateChanger, PAUSE_TIME);
             } else {
                 stopSession();
             }
+        }
+    };
+
+    private Runnable stateChanger = new Runnable() {
+        @Override
+        public void run() {
+            LabelTest currentTest = testLabels[labelIndex];
+            setPromptText(currentTest.getLabelState().toString());
+            LabelData lData = new LabelData(getApplicationContext(), currentTest.getLabelState());
+            testResults[labelIndex] = lData;
+            currentLabelData = lData;
+            labelIndex++;
+            stateHandler.postDelayed(statePauser, currentTest.getTestLength());
         }
     };
 
