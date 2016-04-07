@@ -2,6 +2,7 @@ package edu.gatech.wavevis.app;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -158,32 +159,52 @@ public class CollectorActivity extends Activity {
         stateHandler.postDelayed(stateChanger, 0);
     }
 
+    private class SaveLabelTask extends AsyncTask<Void, Integer,
+            Object> {
+        @Override
+        protected void onPreExecute() {
+            setPromptText("Saving...");
+        }
+
+        @Override
+        protected Object doInBackground(Void... params) {
+            TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
+            for (LabelData ld : testResults) {
+                WaveHeader waveHeader = new WaveHeader(WaveHeader.FORMAT_PCM, (short) audioFormat.getChannels(), (int) audioFormat.getSampleRate(),(short) 16, ld.getWavDataLength());
+                ByteArrayOutputStream header = new ByteArrayOutputStream();
+                try {
+                    waveHeader.write(header);
+                    ld.getLabelWav().seek(0);
+                    ld.getLabelWav().write(header.toByteArray());
+                    ld.getLabelWav().close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            for (LabelData result : testResults) {
+                if (result != null) {
+                    result.writeToFile();
+                    Log.v("result", "result written to file");
+                } else {
+                    Log.v("result", "result is null");
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Object result) {
+            super.onPostExecute(result);
+            setPromptText("None");
+        }
+    }
+
     private void stopSession() {
         recordingState = RecordingState.STOP;
-        setPromptText("Saving Data");
         currentLabelData = null;
-        TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
-        for (LabelData ld : testResults) {
-            WaveHeader waveHeader = new WaveHeader(WaveHeader.FORMAT_PCM, (short) audioFormat.getChannels(), (int) audioFormat.getSampleRate(),(short) 16, ld.getWavDataLength());
-            ByteArrayOutputStream header = new ByteArrayOutputStream();
-            try {
-                waveHeader.write(header);
-                ld.getLabelWav().seek(0);
-                ld.getLabelWav().write(header.toByteArray());
-                ld.getLabelWav().close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        for (LabelData result : testResults) {
-            if (result != null) {
-                result.writeToFile();
-            } else {
-                Log.v("result", "result is null");
-            }
-        }
+        SaveLabelTask saveTask = new SaveLabelTask();
+        saveTask.execute();
         setStartButtonText("Start");
-        setPromptText("None");
     }
 
     public void recordStart(View v) {
