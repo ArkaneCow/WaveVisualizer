@@ -6,8 +6,8 @@ import be.tarsos.dsp.io.android.AudioDispatcherFactory;
 public class AudioService {
     private static AudioService ourInstance;
 
-    private final int SAMPLE_RATE = 8000;
-    private final int BUFFER_SIZE = 1024;
+    private final int SAMPLE_RATE = Config.SAMPLERATE_AUDIO;
+    private final int BUFFER_SIZE = 2048;
 
     private AudioDispatcher dispatcher;
 

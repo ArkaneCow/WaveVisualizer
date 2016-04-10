@@ -1,30 +1,30 @@
 package edu.gatech.wavevis.app;
 
 import android.app.Activity;
-import android.graphics.Bitmap;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 import be.tarsos.dsp.AudioDispatcher;
 import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
 import be.tarsos.dsp.io.TarsosDSPAudioFormat;
-import be.tarsos.dsp.util.fft.FFT;
 import be.tarsos.dsp.writer.WaveHeader;
-import be.tarsos.dsp.writer.WriterProcessor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CollectorActivity extends Activity {
 
-    enum RecordingState {
+	enum RecordingState {
         STOP,
         START,
         PAUSE,;
@@ -45,15 +45,17 @@ public class CollectorActivity extends Activity {
 
     private Button startButton;
     private TextView promptText;
+	private TextView countText;
+	private int audioLen=0;
 
     private RecordingState recordingState;
 
-    private static final int PAUSE_TIME = 3000;
+	private ArrayList<GestureRecording> gestureRecordingSet;
+	private List<Integer> trainingIndices = new ArrayList<Integer>();
+	public 	List<String> trainingSet = new ArrayList<String>();
+	private Gesture[] gestureCollection;
 
-    private LabelTest[] testLabels = { new LabelTest(LabelState.BREATHING, 2000), new LabelTest(LabelState.LEFT_BLOW, 2000), new LabelTest(LabelState.RIGHT_BLOW, 2000), new LabelTest(LabelState.TALKING, 2000) };
-    private LabelData[] testResults;
-
-    private LabelData currentLabelData;
+    private Gesture currentGesture;
 
     private AudioDispatcher dispatcher;
 
@@ -61,14 +63,17 @@ public class CollectorActivity extends Activity {
 
     private Handler stateHandler = new Handler();
 
+	public static long session_timestamp;
+
     private Runnable statePauser = new Runnable() {
         @Override
         public void run() {
-            if (labelIndex < testLabels.length) {
-                currentLabelData = null;
-                LabelTest currentTest = testLabels[labelIndex];
-                setPromptText("Up Next: " + currentTest.getLabelState().toString());
-                stateHandler.postDelayed(stateChanger, PAUSE_TIME);
+            if (labelIndex < gestureRecordingSet.size()) {
+                currentGesture = null;
+                GestureRecording currentTest = gestureRecordingSet.get(labelIndex);
+                setPromptText(currentTest.getGestureRecordIcon());
+				setPromptColor(Color.WHITE);
+                stateHandler.postDelayed(stateChanger, Config.PAUSE_TIME);
             } else {
                 stopSession();
             }
@@ -78,13 +83,15 @@ public class CollectorActivity extends Activity {
     private Runnable stateChanger = new Runnable() {
         @Override
         public void run() {
-            LabelTest currentTest = testLabels[labelIndex];
-            setPromptText(currentTest.getLabelState().toString());
-            LabelData lData = new LabelData(getApplicationContext(), currentTest.getLabelState());
-            testResults[labelIndex] = lData;
-            currentLabelData = lData;
+            GestureRecording currentTest = gestureRecordingSet.get(labelIndex);
+            setPromptText(currentTest.getGestureRecordIcon());
+			setPromptColor(Color.GREEN);
+			setCountText("# " + Integer.toString(currentTest.getGestureSetIndex()));
+            Gesture lData = new Gesture(getApplicationContext(), currentTest.getGestureRecordName(), currentTest.getGestureRecordCount(), currentTest.getGestureSetIndex());
+            gestureCollection[labelIndex] = lData;
+            currentGesture = lData;
             labelIndex++;
-            stateHandler.postDelayed(statePauser, currentTest.getTestLength());
+            stateHandler.postDelayed(statePauser, currentTest.getGestureRecordLength());
         }
     };
 
@@ -94,22 +101,20 @@ public class CollectorActivity extends Activity {
         setContentView(R.layout.activity_collector);
         startButton = (Button) findViewById(R.id.startButton);
         promptText = (TextView) findViewById(R.id.promptText);
+		countText = (TextView) findViewById(R.id.countText);
         recordingState = RecordingState.STOP;
-        testResults = new LabelData[testLabels.length];
+		session_timestamp = System.currentTimeMillis();
+
+		beginSessionPrep();
         dispatcher = AudioService.getInstance().getAudioDispatcher();
         dispatcher.addAudioProcessor(new AudioProcessor() {
             @Override
             public boolean process(AudioEvent audioEvent) {
                 final float[] audioFloatBuffer = audioEvent.getFloatBuffer();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (currentLabelData != null) {
-                            NVector frameVector = new NVector(audioFloatBuffer);
-                            currentLabelData.getLabelData().add(frameVector);
-                        }
-                    }
-                });
+				if (currentGesture != null) {
+					NVector frameVector = new NVector(audioFloatBuffer);
+					currentGesture.getGestureData().add(frameVector);
+				}
                 return true;
             }
 
@@ -118,17 +123,16 @@ public class CollectorActivity extends Activity {
 
             }
         });
-
         dispatcher.addAudioProcessor(new AudioProcessor() {
             private TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
 
             @Override
             public boolean process(AudioEvent audioEvent) {
                 try {
-                    if (currentLabelData != null) {
-                        Log.v("cldbp", "" + currentLabelData.getLabelWav().getFilePointer());
-                        currentLabelData.setWavDataLength(currentLabelData.getWavDataLength() + audioEvent.getByteBuffer().length);
-                        currentLabelData.getLabelWav().write(audioEvent.getByteBuffer());
+                    if (currentGesture != null) {
+                        //Log.v("cldbp", "" + currentGesture.getGestureWav().getFilePointer());
+                        currentGesture.setGestureWavLength(currentGesture.getGestureWavLength() + audioEvent.getByteBuffer().length);
+                        currentGesture.getGestureWav().write(audioEvent.getByteBuffer());
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -138,14 +142,63 @@ public class CollectorActivity extends Activity {
 
             @Override
             public void processingFinished() {
-
             }
         });
     }
 
-    private void setPromptText(String text) {
+	private void beginSessionPrep() {
+		generateLabels();
+		gestureCollection = new Gesture[gestureRecordingSet.size()];
+		GestureRecording currentTest = gestureRecordingSet.get(labelIndex);
+		setPromptText(currentTest.getGestureRecordIcon());
+		setPromptColor(Color.WHITE);
+		setCountText("");
+	}
+
+	private void generateLabels() {
+		gestureRecordingSet = new ArrayList<GestureRecording>();
+		for(int i=0; i< Config.NUM_GESTURES; i++)
+		{
+			for(int j=0; j<Config.GESTURE_MAP.size(); j++)
+			{
+				trainingIndices.add(j);
+			}
+		}
+		if(Config.RANDOMIZE_SET) Collections.shuffle(trainingIndices);
+
+		List keys = new ArrayList(Config.GESTURE_MAP.keySet());
+		List values = new ArrayList(Config.GESTURE_MAP.values());
+
+		Log.d(Config.TAG, keys.toString());
+		Log.d(Config.TAG, values.toString());
+		Log.d(Config.TAG, trainingIndices.toString());
+
+		for(int i=0; i<trainingIndices.size(); i++)
+		{
+			gestureRecordingSet.add(new GestureRecording(keys.get(trainingIndices.get(i)).toString(), values.get(trainingIndices.get(i)).toString(), Config.RECORD_TIME, getCurrentGestureCount(i), i+1));
+		}
+	}
+
+	public Integer getCurrentGestureCount(int setIndex) {
+		int currentGestureCount = 0;
+
+		for(int i=0; i<setIndex; i++)
+		{
+			if(trainingIndices.get(i) == trainingIndices.get(setIndex))
+			{
+				currentGestureCount++;
+			}
+		}
+		return currentGestureCount+1;
+	}
+
+	private void setPromptText(String text) {
         promptText.setText(text);
     }
+
+	private void setPromptColor(int color) { promptText.setTextColor(color); }
+
+	private void setCountText(String text) { countText.setText(text); }
 
     private void setStartButtonText(String text) {
         startButton.setText(text);
@@ -159,52 +212,54 @@ public class CollectorActivity extends Activity {
         stateHandler.postDelayed(stateChanger, 0);
     }
 
-    private class SaveLabelTask extends AsyncTask<Void, Integer,
-            Object> {
+	private void saveDataToFile() {
+		for(Gesture ld : gestureCollection) {
+			SaveLabelTask saveTask = new SaveLabelTask();
+			saveTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ld);
+		}
+	}
+
+    private class SaveLabelTask extends AsyncTask<Object, String, String> {
         @Override
         protected void onPreExecute() {
-            setPromptText("Saving...");
         }
 
         @Override
-        protected Object doInBackground(Void... params) {
-            TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
-            for (LabelData ld : testResults) {
-                WaveHeader waveHeader = new WaveHeader(WaveHeader.FORMAT_PCM, (short) audioFormat.getChannels(), (int) audioFormat.getSampleRate(),(short) 16, ld.getWavDataLength());
-                ByteArrayOutputStream header = new ByteArrayOutputStream();
-                try {
-                    waveHeader.write(header);
-                    ld.getLabelWav().seek(0);
-                    ld.getLabelWav().write(header.toByteArray());
-                    ld.getLabelWav().close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            for (LabelData result : testResults) {
-                if (result != null) {
-                    result.writeToFile();
-                    Log.v("result", "result written to file");
-                } else {
-                    Log.v("result", "result is null");
-                }
-            }
-            return null;
-        }
+        protected String doInBackground(Object... params) {
+			TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
+			Gesture audioGesture = (Gesture) params[0];
+//			Log.d(Config.TAG, audioGesture.getGestureName().toString());
+			Log.d(Config.TAG, audioGesture.baseFileName());
+//			Log.d(Config.TAG, Integer.toString(audioGesture.getGestureData().size()));
+			WaveHeader waveHeader = new WaveHeader(WaveHeader.FORMAT_PCM, (short) audioFormat.getChannels(), (int) audioFormat.getSampleRate(),(short) 16, audioGesture.getGestureWavLength());
+			ByteArrayOutputStream header = new ByteArrayOutputStream();
+			try {
+				waveHeader.write(header);
+				if (audioGesture != null) {
+					audioGesture.getGestureWav().seek(0);
+					audioGesture.getGestureWav().write(header.toByteArray());
+					audioGesture.getGestureWav().close();
+				}
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+			return "Done";
+		}
 
         @Override
-        protected void onPostExecute(Object result) {
-            super.onPostExecute(result);
-            setPromptText("None");
+        protected void onPostExecute(String result) {
+			setPromptColor(Color.WHITE);
+			setPromptText(result);
         }
     }
 
     private void stopSession() {
         recordingState = RecordingState.STOP;
-        currentLabelData = null;
-        SaveLabelTask saveTask = new SaveLabelTask();
-        saveTask.execute();
-        setStartButtonText("Start");
+        currentGesture = null;
+		saveDataToFile();
+		beginSessionPrep();
+		setStartButtonText("Start");
     }
 
     public void recordStart(View v) {
