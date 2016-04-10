@@ -51,8 +51,7 @@ public class CollectorActivity extends Activity {
     private RecordingState recordingState;
 
 	private ArrayList<GestureRecording> gestureRecordingSet;
-	private List<Integer> trainingIndices = new ArrayList<Integer>();
-	public 	List<String> trainingSet = new ArrayList<String>();
+	private List<Integer> trainingIndices;
 	private Gesture[] gestureCollection;
 
     private Gesture currentGesture;
@@ -103,29 +102,9 @@ public class CollectorActivity extends Activity {
         promptText = (TextView) findViewById(R.id.promptText);
 		countText = (TextView) findViewById(R.id.countText);
         recordingState = RecordingState.STOP;
-		session_timestamp = System.currentTimeMillis();
-
 		beginSessionPrep();
         dispatcher = AudioService.getInstance().getAudioDispatcher();
         dispatcher.addAudioProcessor(new AudioProcessor() {
-            @Override
-            public boolean process(AudioEvent audioEvent) {
-                final float[] audioFloatBuffer = audioEvent.getFloatBuffer();
-				if (currentGesture != null) {
-					NVector frameVector = new NVector(audioFloatBuffer);
-					currentGesture.getGestureData().add(frameVector);
-				}
-                return true;
-            }
-
-            @Override
-            public void processingFinished() {
-
-            }
-        });
-        dispatcher.addAudioProcessor(new AudioProcessor() {
-            private TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
-
             @Override
             public boolean process(AudioEvent audioEvent) {
                 try {
@@ -147,16 +126,18 @@ public class CollectorActivity extends Activity {
     }
 
 	private void beginSessionPrep() {
+		labelIndex = 0;
+		session_timestamp = System.currentTimeMillis();
+		gestureRecordingSet = new ArrayList<GestureRecording>();
+		trainingIndices = new ArrayList<Integer>();
 		generateLabels();
 		gestureCollection = new Gesture[gestureRecordingSet.size()];
 		GestureRecording currentTest = gestureRecordingSet.get(labelIndex);
 		setPromptText(currentTest.getGestureRecordIcon());
 		setPromptColor(Color.WHITE);
-		setCountText("");
 	}
 
 	private void generateLabels() {
-		gestureRecordingSet = new ArrayList<GestureRecording>();
 		for(int i=0; i< Config.NUM_GESTURES; i++)
 		{
 			for(int j=0; j<Config.GESTURE_MAP.size(); j++)
@@ -171,7 +152,7 @@ public class CollectorActivity extends Activity {
 
 		Log.d(Config.TAG, keys.toString());
 		Log.d(Config.TAG, values.toString());
-		Log.d(Config.TAG, trainingIndices.toString());
+		//Log.d(Config.TAG, trainingIndices.toString());
 
 		for(int i=0; i<trainingIndices.size(); i++)
 		{
@@ -219,18 +200,18 @@ public class CollectorActivity extends Activity {
 		}
 	}
 
-    private class SaveLabelTask extends AsyncTask<Object, String, String> {
+    private class SaveLabelTask extends AsyncTask<Object, Void, Void> {
         @Override
         protected void onPreExecute() {
         }
 
         @Override
-        protected String doInBackground(Object... params) {
+        protected Void doInBackground(Object... params) {
 			TarsosDSPAudioFormat audioFormat = dispatcher.getFormat();
 			Gesture audioGesture = (Gesture) params[0];
-//			Log.d(Config.TAG, audioGesture.getGestureName().toString());
+			//Log.d(Config.TAG, audioGesture.getGestureName().toString());
 			Log.d(Config.TAG, audioGesture.baseFileName());
-//			Log.d(Config.TAG, Integer.toString(audioGesture.getGestureData().size()));
+			//Log.d(Config.TAG, Integer.toString(audioGesture.getGestureData().size()));
 			WaveHeader waveHeader = new WaveHeader(WaveHeader.FORMAT_PCM, (short) audioFormat.getChannels(), (int) audioFormat.getSampleRate(),(short) 16, audioGesture.getGestureWavLength());
 			ByteArrayOutputStream header = new ByteArrayOutputStream();
 			try {
@@ -244,22 +225,17 @@ public class CollectorActivity extends Activity {
 			catch (IOException e) {
 				e.printStackTrace();
 			}
-			return "Done";
+			return null;
 		}
-
-        @Override
-        protected void onPostExecute(String result) {
-			setPromptColor(Color.WHITE);
-			setPromptText(result);
-        }
     }
 
     private void stopSession() {
         recordingState = RecordingState.STOP;
         currentGesture = null;
 		saveDataToFile();
-		beginSessionPrep();
+		setCountText("Done");
 		setStartButtonText("Start");
+		beginSessionPrep();
     }
 
     public void recordStart(View v) {

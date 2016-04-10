@@ -78,6 +78,16 @@ public class Gesture {
 	}
 
 	public RandomAccessFile getGestureWav() {
+		if (gestureWav == null) {
+			try {
+				gestureWav = new RandomAccessFile(new File(baseFileName() + ".wav"), "rw");
+				gestureWav.write(new byte[HEADER_LENGTH]);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		return gestureWav;
 	}
 
