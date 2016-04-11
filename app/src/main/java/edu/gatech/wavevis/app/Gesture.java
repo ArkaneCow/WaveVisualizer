@@ -3,6 +3,7 @@ package edu.gatech.wavevis.app;
 import android.content.Context;
 import android.os.Environment;
 import android.text.format.DateFormat;
+import android.util.Log;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -78,6 +79,7 @@ public class Gesture {
 	}
 
 	public RandomAccessFile getGestureWav() {
+		Log.d(Config.TAG, baseFileName());
 		if (gestureWav == null) {
 			try {
 				gestureWav = new RandomAccessFile(new File(baseFileName() + ".wav"), "rw");

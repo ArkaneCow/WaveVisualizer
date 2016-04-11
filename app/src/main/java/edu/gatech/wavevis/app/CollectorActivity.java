@@ -116,6 +116,9 @@ public class CollectorActivity extends Activity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+				catch (NullPointerException e) {
+					e.printStackTrace();
+				}
                 return true;
             }
 
